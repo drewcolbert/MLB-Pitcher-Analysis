@@ -1,0 +1,701 @@
+---
+title: "Giants Pitcher Analysis"
+author: "Drew Colbert"
+date: "2022-10-19"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = "center")
+```
+
+```{r Load Packages, echo = FALSE, include = FALSE, message = FALSE}
+# uncomment these and run first to install the required packages
+
+# install.packages("ggplot2")
+# install.packages("data.table")
+# install.packages("patchwork")
+
+
+library(ggplot2)
+library(data.table)
+library(patchwork)
+
+```
+
+```{r Read in the Data, echo = FALSE, include = FALSE}
+# NOTE: comments on the code will apply to both pitcher A and pitcher B but will only be written on 
+# the code used for pitcher A
+
+# to read file, enter the path to the folder where you keep the csv file
+# path to directory where the file is located
+dir <- "C:\\Users\\drewc\\OneDrive\\Documents\\Giants"
+setwd(dir)
+
+# read in the csv file
+pitch_data_raw <- read.csv("pitch_data_questionnaire.csv")
+
+
+# lets split pitcher_a and pitcher_b
+pitcher_a_index <- which(pitch_data_raw$pitcher_id == "player_a")
+
+pitcher_a <- pitch_data_raw[pitcher_a_index,]
+pitcher_b <- pitch_data_raw[-pitcher_a_index,]
+
+data <- pitcher_a
+```
+
+# Quick Summary
+
+Pitcher A is a right hander who has an arsenal containing a four seam,
+curveball, slider, changeup, cutter, and sinker. He mainly relies on
+four seam, curveball, and slider. His four seam has a lot of bite to it,
+almost like a two seam fastball and his go-to pitch to try and get a
+first pitch strike, which he is successful at doing 55% of the time. His
+slider is his go-to offspeed pitch in just about any situation, he can
+throw it for a strike or he can add some extra movement on it to try and
+get you to chase. His real put-away pitch is his loopy curveball, he
+throws this pitch the most in counts with two strikes and he throws it
+almost exclusively down and away to right-handed hitters to try and get
+them to chase. He is not as confident in throwing it for a strike, as
+his usage goes down considerably in counts where he is behind. Overall,
+if you can get on this guy early and avoid all the junk he throws
+outside of the strike zone, you can get after him to all parts of the
+field.
+
+Pitcher B is left hander with an arsenal of four seam, slider,
+curveball, changeup. Majority of the time he is throwing his four seam
+or his slider. He is a Chris Sale type, with a solid fastball that tails
+a lot and shifty slider that he throws towards the back leg of a righty.
+With two strikes you can expect either a high fastball or a slider that
+is towards the bottom right corner of the strike zone. One of his best
+abilities is the way he throws the fastball and slider from the same
+spot. This makes it extremely difficult for a hitter to read the ball
+coming out of his hand. The biggest downfall of pitcher B is his lack of
+a third pitch. The fastball and slider are good and can work, but having
+that third pitch, like a changeup, nailed down would take him to the
+next level. He doesn't throw it much, but when he does there isn't much
+drop to it, which makes it a hanging ball that any hitters eyes will
+light up for. He seems like when he's on, he's untouchable. But if just
+one pitch isn't feeling right, he might be in trouble.
+
+## Full Breakdown {.tabset}
+
+### Pitcher A
+
+    Pitcher A has a wide array of pitches under his belt that he will
+throw, but the most common are four seam, slider, and curveball with a
+pretty healthy mix changeups in there as well.
+
+```{r First Look, echo = FALSE}
+# get a count of how many times each pitch was thrown
+pitch_counts <- aggregate(data, pitch_id ~ pitch_type, FUN = length)
+
+# percentages make more sense in this case
+# take the total pitches and find the percentage for each, then format to add the "%" on the end
+pitch_counts$percentage <- sapply(pitch_counts$pitch_id, FUN = function(x){paste(round(x/sum(pitch_counts$pitch_id) * 100, 0), "%", sep = "")})
+
+# find the average speed that each pitch was thrown
+ave_speed <- aggregate(data, rel_speed ~ pitch_type, FUN = mean)
+
+# combine our total counts, percentages, and average speed into one table
+# we change the column names to make it easier to understand, and we round
+# the speed to only have 1 decimal point for readability as well. 
+pitch_summary <- merge(ave_speed, pitch_counts, by = "pitch_type")
+colnames(pitch_summary) <- c("Pitch Type", "Ave Pitch Speed", "Total Thrown", "Usage %")
+pitch_summary$`Ave Pitch Speed` <- round(pitch_summary$`Ave Pitch Speed`, 1)
+pitch_summary <- as.data.table(pitch_summary, keep.rownames = FALSE)
+pitch_summary
+
+```
+
+Pitcher A tends to work two parts of the zone: low-and-away to
+right-handed hitters and up-and-in to right handed hitters. Other than
+that there seems to be some reluctance to throw the ball to any other
+part of the zone.  
+
+```{r Locations, echo = FALSE}
+# create the dimensions of our strike zone (in ft right now)
+# will be added as a ggplot layer 
+strike_zone <- data.frame(x1 = -0.705, x2 = 0.705, y1 = 1.5, y2 = 3.6)
+
+
+ggplot(data = data, aes(x = plate_loc_side, y = plate_loc_height)) +
+  geom_point() +
+  stat_density_2d_filled(bins = 6, show.legend = FALSE, geom = "polygon", alpha = 0.7) +
+  scale_fill_manual(values = c("gray93", "#ffc100", "#ff9a00", "#ff7400", "#ff4d00", "#ff0000")) +
+  geom_rect(data = strike_zone, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), 
+            inherit.aes = FALSE, fill = NA, color = "black", lwd = 1.5) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank()) +
+  labs(title = "Distribution of Pitch Locations Relative to the 'Average' MLB Strikezone",
+       subtitle = "This POV is if you were standing on the mound facing home") +
+  theme(plot.subtitle = element_text(size = 8))
+```
+
+   
+
+Pitcher A tends to attack both sides of the plate the same way. Still
+wants to work those two corners of the zone regardless of what side the
+batter is on.  
+
+```{r Righties vs Lefties, echo = FALSE}
+# easy way to see the difference between lefty and righty batters
+# the same code from above, just with a different color mapping
+ggplot() +
+  geom_point(data = data, aes(x = plate_loc_side, y = plate_loc_height, col = batter_side), alpha = 0.5) +
+  scale_color_manual(name = "Batter Side", values = c("red", "blue")) +
+  geom_rect(data = strike_zone, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), 
+            inherit.aes = FALSE, fill = NA, color = "black", lwd = 1.5) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank()) +
+  labs(title = "Lefty vs Righty Batters")
+```
+
+   
+
+#### Individual Pitch Breakdown
+
+   
+
+The release point actually tends to have quite a bit of variation. His
+4-seam can come from an over-the-top angle, but will more often than not
+be anywhere around a 3/4 release point. What you may notice though is
+that the curveball generally comes from over-the-top where the slider
+will most likely come from the 3/4 release point. Now this make sense
+considering the goal of each pitch, the curveball is going to have more
+vertical break whereas the slider is going to have more horizontal break
+to it. As a hitter, this would be something you could pick up on and be
+able to recognize which pitch may be coming.
+
+```{r Release Points, echo = FALSE}
+ggplot(data = data, aes(x = rel_side, y = rel_height)) +
+  geom_point(aes(col = pitch_type, alpha = I(0.2)), show.legend = FALSE) +
+  scale_color_manual(values = c("red", "blue", "forestgreen", "orange", "black", "purple")) +
+  geom_point(aes(x = 0, y = 0), col = "black", size = 5) +
+  annotate("text", label = "<--- Center of the rubber on the ground", x = 1.2, y = 0.1, size = 2)+
+  labs(title = "Release Points",
+       x = "Distance from the center of the rubber (ft)",
+       y = "Height above the ground (ft)") +
+  facet_wrap(~ pitch_type)
+```
+
+   
+
+Here is a breakdown for the vertical and horizontal movement of each
+pitch. The most surprising thing on this chart is the horizontal break
+of the fastball. There tends to be quite a lot of bite to his fastball
+and it seems to move more like a two-seam fastball instead of a
+four-seam fastball. Another thing to note is that his curveball is a big
+looping curve that has a lot of movement but could most likely be
+adjusted to by a hitter. Whereas the slider has a lot of variability to
+it, showing a large range of movement, which depends on the situation.
+In fact, with two strikes, there is significantly more horizontal and
+vertical break on slider slider, presumably trying to get the hitter to
+chase one out of the zone compared to when there is less than two
+strikes in a count.    
+
+```{r Horizontal and Vertical Break, echo = FALSE, out.width = "150%"}
+# these plots are named (p1 and p2) in order to make use of the patchwork library. 
+# this allows my plots to be rendered side-by-side, instead of top of each other
+# this keeps the output neat, and aesthetically pleasing
+
+p1 <- ggplot(data = data) +
+  geom_boxplot(aes(x = pitch_type, y = horz_break, fill = pitch_type), 
+               alpha = 0.7, show.legend = FALSE) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_fill_manual(name = "", values = c("red", "blue", "green", "orange", "yellow", "purple")) +
+  coord_flip() +
+  labs(title = "Horizontal Break of Each Pitch",
+       subtitle = "The dashed line represents where the ball was released. \nBreak is calculated as the difference from the release point \nand when it crosses home.\n\nThis is from the pitchers POV looking at home.",
+       x = "Pitch Type",
+       y = "Amount of Break (in)") +
+  theme(plot.subtitle = element_text(size = 7),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank())
+
+p2 <- ggplot(data = data) +
+  geom_boxplot(aes(x = pitch_type, y = induced_vert_break, fill = pitch_type), alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_fill_manual(name = "", 
+                    values = c("red", "blue", "green", "orange", "yellow", "purple")) +
+  labs(title = "Vertical Break of Each Pitch",
+       subtitle = "A positive value indicates that the ball essentially 'fought off' gravity \nand dropped less than it would have with gravity alone.",
+       x = "Pitch Type",
+       y = "Amount of Break (in)") +
+  theme(plot.subtitle = element_text(size = 7),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank(),
+        legend.position = "bottom")
+
+p1 + p2 # this is where patchwork comes in
+```
+
+```{r T.Test, echo = FALSE, include = FALSE, results = "hide"}
+# with so much variability in the slider, i want to look into whether the situation influences how its thrown
+# this is presumably a strikeout pitch, so im going to look at counts with two strikes and compare the average horizontal and vertical break for sliders to see if theres a major difference
+
+# this was not included in the output because a coach realistically wouldnt care about 
+# p-values and t-tests and the statistics lingo. but this was done to actually show there 
+# was a different break in sliders thrown with two strikes compared to others
+
+sliders_only <- data[which(data$pitch_type == "slider"),]
+
+sliders_ahead <- sliders_only[which(sliders_only$strikes == 2),]
+sliders_other <- sliders_only[which(sliders_only$strikes < 2),]
+
+mean(sliders_ahead$plate_loc_side) # -0.5303
+mean(sliders_ahead$plate_loc_height) # 2.060
+
+mean(sliders_other$plate_loc_side) # -0.3490
+mean(sliders_other$plate_loc_height) # 2.200
+
+t.test(x = sliders_ahead$plate_loc_side, y = sliders_other$plate_loc_side, paired = FALSE, alternative = "less")
+
+t.test(x = sliders_ahead$plate_loc_height, y = sliders_other$plate_loc_height, paired = FALSE, alternative = "less")
+```
+
+#### Pitcher Tendencies
+
+    To start an at bat, his fastball is typically his go-to pitch to try
+and get one over and get ahead of the count, choosing this pitch about
+half of the time. He will occasionally go to an offspeed pitch to mix it
+up and pretty consistently throws an actual strike 55% of the time,
+regardless of what pitch.    
+
+```{r First Pitch, echo = FALSE}
+# these are all of the values in the data that mean the first pitch was a strike, whether swinging or called
+strike_pitch_calls <- c("foul_ball", "strike_called", "strike_swinging", "in_play")
+
+# first step is to find all of the first pitches of a plate appearence
+first_pitch <- data[which(data$pitch_of_pa == 1),]
+# next is to find which of the first pitches were strikes using the list generated above
+first_pitch_strike <- first_pitch[which(first_pitch$pitch_call %in% strike_pitch_calls),]
+
+# then we find the totals for each of them
+sum_fp <- aggregate(first_pitch, pitch_id ~ pitch_type, FUN = length)
+sum_fps <- aggregate(first_pitch_strike, pitch_id ~ pitch_type, FUN = length)
+
+ggplot() +
+  geom_col(data = sum_fp, aes(x = pitch_type, y = pitch_id), 
+           col = "black", fill = "black") +
+  geom_text(data = sum_fp, aes(x = pitch_type, y = pitch_id, label = pitch_id), vjust = -0.75) +
+  geom_col(data = sum_fps, aes(x = pitch_type, y = pitch_id), 
+           col = "orangered", fill = "orangered", alpha = 0.6) +
+  geom_text(data = sum_fps, aes(x = pitch_type, y = pitch_id, label = pitch_id), vjust = 1.25) +
+  geom_text(data = sum_fp, aes(x = pitch_type[2], y = 300, 
+                               label = paste("Total First Pitches Thrown:", 
+                                             sum(pitch_id), 
+                                             sep = " "))) +
+  geom_text(data = sum_fps, aes(x = pitch_type[2], y = 285, 
+                               label = paste("Total First Pitch Strikes:", 
+                                             sum(pitch_id), 
+                                             sep = " "))) +
+  labs(title = "First Pitches by Pitch Type",
+       y = "Number of times thrown") +
+  theme(axis.title.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid = element_blank()) +
+  ylim(c(0,350))
+```
+
+    After that first pitch, he seems to stick to the same tendencies as
+before. Reliance on the fastball mostly with a healthy dose of
+curveballs and sliders in the mix. Being behind in the count he is less
+open to throwing his curveball compared to any other count type, leading
+me to believe that he is not as confident in throwing his curveball for
+a strike and he uses this as mainly a strikeout pitch to get guys
+chasing. He relies heavily on his fastball throughout all counts and he
+throws the slider more in counts where he's behind or even, which is a
+sign he is confident he can throw it for a strike in any count to mix up
+the batters timing.    
+
+```{r Different Counts, echo = FALSE}
+ahead_count <- data[which(data$strikes > data$balls),]
+behind_count <- data[which(data$strikes < data$balls),]
+even_count <- data[which(data$strikes == data$balls),]
+
+# after finding the data i was looking for, i wanted how many of each pitch were thrown in the different counts
+ahead_table <- aggregate(ahead_count, pitch_id ~ pitch_type, FUN = length)
+behind_table <- aggregate(behind_count, pitch_id ~ pitch_type, FUN = length)
+even_table <- aggregate(even_count, pitch_id ~ pitch_type, FUN = length)
+
+# i then went ahead and combined all of this information into one table to easily read.
+# the method for doing this is admittedly sloppy, but it works for this data
+a <- merge(ahead_table, behind_table, by = "pitch_type")
+counts_table <- merge(a, even_table, by = "pitch_type")
+colnames(counts_table) <- c("Pitch Type", "Ahead", "Behind", "Even")
+counts_table
+```
+
+ 
+
+When he gets into a two strike count, he goes to his three favorite
+pitches about the same amount of times, with the curveball just edging
+out the fastball. This again confirms that his curveball seems to be his
+put-away pitch. When he does go offspeed, he usually throws it down and
+away to righties, which is not uncommon for pitchers to do. Another
+common trend is that he throws his fastball up in the zone when trying
+to get guys out. Both of these are common to a pitcher as a put-away
+pitch and he follows suit.    
+
+```{r Favorite Two Strike Pitches, echo = FALSE, out.width = "150%"}
+# this is the exact code used in the first chunk of this document.
+# it finds the percentages of each pitch, formats it, and puts it into a new column
+two_strikes <- data[which(data$strikes == 2),]
+two_strike_pitches <- aggregate(two_strikes, pitch_id ~ pitch_type, FUN = length)
+two_strike_pitches$percentage <- sapply(two_strike_pitches$pitch_id, FUN = function(x){paste(round(x/sum(two_strike_pitches$pitch_id) * 100, 0), "%", sep = "")})
+
+
+p3 <- ggplot(data = two_strike_pitches, aes(x = pitch_type, y = pitch_id)) +
+  geom_col(fill = "orangered", color = "black", alpha = 0.7) +
+  geom_text(aes(label = percentage), vjust = -1) +
+  labs(title = "Frequency of Pitch Type") +
+  theme(axis.title.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid = element_blank()) +
+  ylim(c(0,max(two_strike_pitches$pitch_id) + 10))
+
+p4 <- ggplot(data = two_strikes[which(two_strikes$pitch_type %in% c("four_seam", "curveball", "slider")),], aes(x = plate_loc_side, y = plate_loc_height)) +
+  geom_point(aes(color = pitch_type)) +
+  scale_color_manual(values = c("red", "blue", "orange", "green", "yellow", "deeppink"), name = "") +
+  geom_rect(data = strike_zone, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), 
+            inherit.aes = FALSE, fill = NA, color = "black", lwd = 1.5) +
+  labs(title = "Locations of Two Strike Pitches") +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        legend.position = "bottom")
+
+p3 + p4 # again you'll see patchwork coming into play here
+
+```
+
+    To wrap up, this spray chart shows where hitters typically hit each
+pitch. Notice how the fastball gets sprayed all over the field, this
+could be due in part because he throws more, but also because of his
+reliance to it on the first pitch. Guys may jump all over the first
+pitch fastball if they're expecting it and are able to put it in play.
+It is also worth pointing out that his offspeed pitches are typically
+being fouled off or hit back up the middle. Given that he exclusively
+throws it low and away to a right handed hitter or down and in to a
+lefty, it shows that hitters are trying to foul off the junk and make
+him come in with something hard, or doing what they can with the outside
+curve and try to go the opposite way.    
+
+```{r Spray Chart, echo = FALSE}
+# to make it more readable, i left out any balls that went under 5 feet
+# geom_curve and geom_abline are what create the outline of the field
+# i tried to make it match 'typical' field dimensions (~310 down the lines and ~400 to center)
+ggplot(data = data[which(data$distance > 5),], aes(x = direction, y = distance, col = pitch_type)) +
+  geom_point(size = 2) +
+  scale_color_manual(name = "", 
+                     values = c("red", "blue", "green", "orange", "yellow", "purple")) +
+  geom_curve(aes(x = -200, y = 300, xend = 200, yend = 300), 
+             curvature = -0.35, color = "black", ncp = 10) +
+  geom_abline(aes(intercept = 0, slope = -1.5)) +
+  geom_abline(aes(intercept = 0, slope = 1.5)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_y_continuous(breaks = seq(0,500, 50)) +
+  labs(title = "Spray Chart for All Balls Put in Play",
+       subtitle = "Solid lines represent the basepaths, the dashed line represents the middle of the field through second base",
+       y = "Distance (ft)") +
+  theme(axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(size = 6),
+        panel.grid = element_blank()) +
+  xlim(c(-200,200))
+```
+
+------------------------------------------------------------------------
+
+```{r Change Pitchers, echo = FALSE}
+# this changes the data to be pitcher B, and all of the code from above is used again, only with 
+# different data
+data <- pitcher_b
+```
+
+### Pitcher B
+
+Pitcher B throws four pitches but mostly relies on just the four seam
+and slider to get by with the occasional changeup to mix it up and very
+rarely throws his curveball. There is a drastic speed difference between
+his four seam and his slider with nearly a 15mph difference between the
+two.    
+
+```{r echo = FALSE}
+pitch_counts <- aggregate(data, pitch_id ~ pitch_type, FUN = length)
+
+
+pitch_counts$percentage <- sapply(pitch_counts$pitch_id, FUN = function(x){paste(round(x/sum(pitch_counts$pitch_id) * 100, 0), "%", sep = "")})
+
+pitch_counts <- pitch_counts[order(pitch_counts$pitch_id, decreasing = TRUE),]
+
+ave_speed <- aggregate(data, rel_speed ~ pitch_type, FUN = mean)
+
+pitch_summary <- merge(ave_speed, pitch_counts, by = "pitch_type")
+colnames(pitch_summary) <- c("Pitch Type", "Ave Pitch Speed", "Total Thrown", "Usage %")
+pitch_summary$`Ave Pitch Speed` <- round(pitch_summary$`Ave Pitch Speed`, 1)
+pitch_summary <- as.data.table(pitch_summary, keep.rownames = FALSE)
+pitch_summary
+```
+
+    He is not afraid to throw anywhere around the plate, with a good mix
+of inside and out, and up and down. He favors down and away to a lefty
+hitter but that is most likely because of the slider that he throwing.  
+ 
+
+```{r echo = FALSE}
+ggplot(data = data, aes(x = plate_loc_side, y = plate_loc_height)) +
+  geom_point() +
+  stat_density_2d_filled(bins = 6, show.legend = FALSE, geom = "polygon", alpha = 0.7) +
+  scale_fill_manual(values = c("gray93", "#ffc100", "#ff9a00", "#ff7400", "#ff4d00", "#ff0000")) +
+  geom_rect(data = strike_zone, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), 
+            inherit.aes = FALSE, fill = NA, color = "black", lwd = 1.5) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank()) +
+  labs(title = "Distribution of Pitch Locations Relative to the 'Average' MLB Strikezone",
+       subtitle = "This POV is if you were standing on the mound facing home") +
+  theme(plot.subtitle = element_text(size = 8))
+```
+
+    In terms of lefty vs righty, he does not seem to attack either side
+any different in terms of location, keeping it pretty consistant with
+both.    
+
+```{r echo = FALSE}
+ggplot() +
+  geom_point(data = data, aes(x = plate_loc_side, y = plate_loc_height, col = batter_side), alpha = 0.5) +
+  scale_color_manual(name = "Batter Side", values = c("red", "blue")) +
+  geom_rect(data = strike_zone, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), 
+            inherit.aes = FALSE, fill = NA, color = "black", lwd = 1.5) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank()) +
+  labs(title = "Lefty vs Righty Batters")
+```
+
+   
+
+#### Individual Pitch Breakdown
+
+His release point is very consistant throughout all of his pitches.
+There is almost no difference in the release point between his fastball
+and his slider which is where he makes his living. This is a really good
+sign as a pitcher, it'll be very difficult to tell what pitch is coming
+when they all come out of his hand the same way.    
+
+```{r echo = FALSE}
+ggplot(data = data, aes(x = rel_side, y = rel_height)) +
+  geom_point(aes(col = pitch_type, alpha = I(0.2)), show.legend = FALSE) +
+  scale_color_manual(values = c("red", "blue", "forestgreen", "orange", "black", "purple")) +
+  geom_point(aes(x = 0, y = 0), col = "black", size = 5) +
+  annotate("text", label = "Center of Mound", x = -0.2, y = 0.9, size = 2)+
+  labs(title = "Release Points",
+       x = "Distance from the center of the rubber (ft)",
+       y = "Height above the ground (ft)") +
+  facet_wrap(~ pitch_type)
+```
+
+    His movement is probably what you would expect from a lefty. A lot
+of tail to his four seam that cuts in on a lefty and a huge sweeping
+slider. The slider is mosty horizontal break and very little vertical
+break. So that is a pitch that might look like a fastball out of the
+hand but then it just runs away from you. Also note that the changeup
+has a lot of horizontal break to it but very little vertical break to
+it, this tells me that if he misses his spot with that pitch it is going
+to hang there for someone to hit a long way. This is something to watch
+out for and work on.    
+
+```{r echo = FALSE, out.width = "150%"}
+ave_horz_break <- aggregate(data, horz_break ~ pitch_type, FUN = mean)
+ave_vert_break <- aggregate(data, vert_break ~ pitch_type, FUN = mean)
+
+ave_pitch_break <- merge(ave_horz_break, ave_vert_break, by = "pitch_type")
+
+
+p5 <- ggplot(data = data) +
+  geom_boxplot(aes(x = pitch_type, y = horz_break, fill = pitch_type), 
+               alpha = 0.7, show.legend = FALSE) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_fill_manual(name = "", values = c("red", "blue", "green", "orange", "yellow", "purple")) +
+  coord_flip() +
+  labs(title = "Horizontal Break of Each Pitch",
+       subtitle = "The dashed line represents where the ball was released. \nBreak is calculated as the difference from the release point \nand when it crosses home.\n\nThis is from the pitchers POV looking at home.",
+       x = "Pitch Type",
+       y = "Amount of Break (in)") +
+  theme(plot.subtitle = element_text(size = 7),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank())
+
+p6 <- ggplot(data = data) +
+  geom_boxplot(aes(x = pitch_type, y = induced_vert_break, fill = pitch_type), alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_fill_manual(name = "", 
+                    values = c("red", "blue", "green", "orange", "yellow", "purple")) +
+  labs(title = "Vertical Break of Each Pitch",
+       subtitle = "A positive value indicates that the ball essentially 'fought off' gravity \nand dropped less than it would have with gravity alone.",
+       x = "Pitch Type",
+       y = "Amount of Break (in)") +
+  theme(plot.subtitle = element_text(size = 7),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank(),
+        legend.position = "bottom")
+
+p5 + p6
+```
+
+   
+
+#### Pitcher Tendencies
+
+He likes to use his top two pitches to get ahead in the count, mainly
+his fastball. He is throwing a first pitch strike about 55% of the time.
+   
+
+```{r echo = FALSE}
+strike_pitch_calls <- c("foul_ball", "strike_called", "strike_swinging", "in_play")
+first_pitch <- data[which(data$pitch_of_pa == 1),]
+first_pitch_strike <- first_pitch[which(first_pitch$pitch_call %in% strike_pitch_calls),]
+
+sum_fp <- aggregate(first_pitch, pitch_id ~ pitch_type, FUN = length)
+sum_fps <- aggregate(first_pitch_strike, pitch_id ~ pitch_type, FUN = length)
+
+ggplot() +
+  geom_col(data = sum_fp, aes(x = pitch_type, y = pitch_id), 
+           col = "black", fill = "black") +
+  geom_text(data = sum_fp, aes(x = pitch_type, y = pitch_id, label = pitch_id), vjust = -0.75) +
+  geom_col(data = sum_fps, aes(x = pitch_type, y = pitch_id), 
+           col = "orangered", fill = "orangered", alpha = 0.6) +
+  geom_text(data = sum_fps, aes(x = pitch_type, y = pitch_id, label = pitch_id), vjust = 1.25) +
+  geom_text(data = sum_fp, aes(x = pitch_type[2], y = 300, 
+                               label = paste("Total First Pitches Thrown:", 
+                                             sum(pitch_id), 
+                                             sep = " "))) +
+  geom_text(data = sum_fps, aes(x = pitch_type[2], y = 285, 
+                               label = paste("Total First Pitch Strikes:", 
+                                             sum(pitch_id), 
+                                             sep = " "))) +
+  labs(title = "First Pitches by Pitch Type",
+       y = "Number of times thrown") +
+  theme(axis.title.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid = element_blank()) +
+  ylim(c(0,350))
+```
+
+    Whether he's ahead, behind, or even in the count, his pitch
+selection remains almost the same. He uses the slider just a little bit
+more when he is ahead in the count, but not by much, showing me that he
+is confident that he can throw it for a strike when he needs to.    
+
+```{r echo = FALSE}
+ahead_count <- data[which(data$strikes > data$balls),]
+behind_count <- data[which(data$strikes < data$balls),]
+even_count <- data[which(data$strikes == data$balls),]
+
+ahead_table <- aggregate(ahead_count, pitch_id ~ pitch_type, FUN = length)
+behind_table <- aggregate(behind_count, pitch_id ~ pitch_type, FUN = length)
+even_table <- aggregate(even_count, pitch_id ~ pitch_type, FUN = length)
+a <- merge(ahead_table, behind_table, by = "pitch_type")
+counts_table <- merge(a, even_table, by = "pitch_type")
+colnames(counts_table) <- c("Pitch Type", "Ahead", "Behind", "Even")
+counts_table
+```
+
+    With two strikes, it is no surprise what pitches he is going to turn
+to and where he is going to throw them most often. He is going to throw
+a slider at the back leg of a right handed hitter or away from a lefty
+and he tends to go high fastball as well for a put out pitch. This is a
+good combination to have where you can really change the eye level of
+the hitter with two very different pitches.    
+
+```{r echo = FALSE, out.width = "150%"}
+two_strikes <- data[which(data$strikes == 2),]
+two_strike_pitches <- aggregate(two_strikes, pitch_id ~ pitch_type, FUN = length)
+two_strike_pitches$percentage <- sapply(two_strike_pitches$pitch_id, FUN = function(x){paste(round(x/sum(two_strike_pitches$pitch_id) * 100, 0), "%", sep = "")})
+
+
+p7 <- ggplot(data = two_strike_pitches, aes(x = pitch_type, y = pitch_id)) +
+  geom_col(fill = "orangered", color = "black", alpha = 0.7) +
+  geom_text(aes(label = percentage), vjust = -1) +
+  labs(title = "Frequency of Pitch Type") +
+  theme(axis.title.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid = element_blank()) +
+  ylim(c(0,max(two_strike_pitches$pitch_id) + 10))
+
+p8 <- ggplot(data = two_strikes[which(two_strikes$pitch_type %in% c("four_seam", "curveball", "slider")),],
+       aes(x = plate_loc_side, y = plate_loc_height)) +
+  geom_point(aes(color = pitch_type)) +
+  scale_color_manual(values = c("red", "blue", "orange", "green", "yellow", "deeppink"), name = "") +
+  geom_rect(data = strike_zone, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), 
+            inherit.aes = FALSE, fill = NA, color = "black", lwd = 1.5) +
+  labs(title = "Locations of Two Strike Pitches") +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        legend.position = "bottom")
+
+p7 + p8
+```
+
+    Finally, the spray chart shows that his fastball is most often being
+hit to the right side of the field, with a lot of balls seeming to go
+right down the first base line. As we showed with the movement, his four
+seam is going to be tailing away from a right handed hitter so when they
+see that, they are going to go with the pitch and go the other way. His
+slider mostly gets hit to the left side or up the middle, which is where
+a left handed hitter's only option is if he throws it correctly.    
+
+```{r echo = FALSE}
+ggplot(data = data[which(data$distance > 5),], aes(x = direction, y = distance, col = pitch_type)) +
+  geom_point(size = 2) +
+  scale_color_manual(name = "", 
+                     values = c("red", "blue", "forestgreen", "orange", "yellow", "purple")) +
+  geom_curve(aes(x = -200, y = 300, xend = 200, yend = 300), 
+             curvature = -0.35, color = "black", ncp = 10) +
+  geom_abline(aes(intercept = 0, slope = -1.5)) +
+  geom_abline(aes(intercept = 0, slope = 1.5)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_y_continuous(breaks = seq(0,500, 50)) +
+  labs(title = "Spray Chart for All Balls Put in Play",
+       subtitle = "Solid lines represent the basepaths, the dashed line represents the middle of the field through second base",
+       y = "Distance (ft)") +
+  theme(axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(size = 6),
+        panel.grid = element_blank()) +
+  xlim(c(-200,200))
+```
