@@ -58,7 +58,7 @@ that there seems to be some reluctance to throw the ball to any other
 part of the zone.  
 
 
-<img src="R\Giants\Images\A-Locations.png" style="display: block; margin: auto;" />
+![A-Locations](images/A-Locations.png)
 
    
 
@@ -66,7 +66,7 @@ Pitcher A tends to attack both sides of the plate the same way. Still
 wants to work those two corners of the zone regardless of what side the
 batter is on.  
 
-<img src="giants_files/figure-gfm/Righties vs Lefties-1.png" style="display: block; margin: auto;" />
+![A-RightVSLeft](images/A-RightVSLeft.png)
 
    
 
@@ -84,7 +84,7 @@ vertical break whereas the slider is going to have more horizontal break
 to it. As a hitter, this would be something you could pick up on and be
 able to recognize which pitch may be coming.
 
-<img src="giants_files/figure-gfm/Release Points-1.png" style="display: block; margin: auto;" />
+![A-ReleasePoints](images/A-ReleasePoints.png)
 
    
 
@@ -101,7 +101,7 @@ vertical break on slider slider, presumably trying to get the hitter to
 chase one out of the zone compared to when there is less than two
 strikes in a count.    
 
-<img src="giants_files/figure-gfm/Horizontal and Vertical Break-1.png" width="150%" style="display: block; margin: auto;" />
+![A-Breaks](images/A-Breaks.png)
 
 #### Pitcher Tendencies
 
@@ -111,7 +111,7 @@ half of the time. He will occasionally go to an offspeed pitch to mix it
 up and pretty consistently throws an actual strike 55% of the time,
 regardless of what pitch.    
 
-<img src="giants_files/figure-gfm/First Pitch-1.png" style="display: block; margin: auto;" />
+![A-FirstPitch](images/A-FirstPitch.png)
 
     After that first pitch, he seems to stick to the same tendencies as
 before. Reliance on the fastball mostly with a healthy dose of
@@ -143,7 +143,7 @@ common trend is that he throws his fastball up in the zone when trying
 to get guys out. Both of these are common to a pitcher as a put-away
 pitch and he follows suit.    
 
-<img src="giants_files/figure-gfm/Favorite Two Strike Pitches-1.png" width="150%" style="display: block; margin: auto;" />
+![A-TwoStrikes](images/A-TwoStrikes.png)
 
     To wrap up, this spray chart shows where hitters typically hit each
 pitch. Notice how the fastball gets sprayed all over the field, this
@@ -157,7 +157,7 @@ lefty, it shows that hitters are trying to foul off the junk and make
 him come in with something hard, or doing what they can with the outside
 curve and try to go the opposite way.    
 
-<img src="giants_files/figure-gfm/Spray Chart-1.png" style="display: block; margin: auto;" />
+![A-SprayChart](images/A-SprayChart.png)
 
 ------------------------------------------------------------------------
 
@@ -180,13 +180,13 @@ of inside and out, and up and down. He favors down and away to a lefty
 hitter but that is most likely because of the slider that he throwing.  
  
 
-<img src="giants_files/figure-gfm/unnamed-chunk-2-1.png" style="display: block; margin: auto;" />
+![B-Locations](images/B-Locations.png)
 
     In terms of lefty vs righty, he does not seem to attack either side
 any different in terms of location, keeping it pretty consistant with
 both.    
 
-<img src="giants_files/figure-gfm/unnamed-chunk-3-1.png" style="display: block; margin: auto;" />
+![B-RightVSLeft](images/B-RightVSLeft.png)
 
    
 
@@ -198,7 +198,7 @@ and his slider which is where he makes his living. This is a really good
 sign as a pitcher, it’ll be very difficult to tell what pitch is coming
 when they all come out of his hand the same way.    
 
-<img src="giants_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+![B-ReleasePoints](images/B-ReleasePoints.png)
 
     His movement is probably what you would expect from a lefty. A lot
 of tail to his four seam that cuts in on a lefty and a huge sweeping
@@ -210,7 +210,7 @@ it, this tells me that if he misses his spot with that pitch it is going
 to hang there for someone to hit a long way. This is something to watch
 out for and work on.    
 
-<img src="giants_files/figure-gfm/unnamed-chunk-5-1.png" width="150%" style="display: block; margin: auto;" />
+![B-Breaks](images/B-Breaks.png)
 
    
 
@@ -220,7 +220,7 @@ He likes to use his top two pitches to get ahead in the count, mainly
 his fastball. He is throwing a first pitch strike about 55% of the time.
    
 
-<img src="giants_files/figure-gfm/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
+![B-FirstPitch](images/B-FirstPitch.png)
 
     Whether he’s ahead, behind, or even in the count, his pitch
 selection remains almost the same. He uses the slider just a little bit
@@ -240,7 +240,7 @@ and he tends to go high fastball as well for a put out pitch. This is a
 good combination to have where you can really change the eye level of
 the hitter with two very different pitches.    
 
-<img src="giants_files/figure-gfm/unnamed-chunk-8-1.png" width="150%" style="display: block; margin: auto;" />
+![B-TwoStrikes](images/B-TwoStrikes.png)
 
     Finally, the spray chart shows that his fastball is most often being
 hit to the right side of the field, with a lot of balls seeming to go
@@ -250,4 +250,4 @@ see that, they are going to go with the pitch and go the other way. His
 slider mostly gets hit to the left side or up the middle, which is where
 a left handed hitter’s only option is if he throws it correctly.    
 
-<img src="giants_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
+![B-SprayChart](images/B-SprayChart.png)
