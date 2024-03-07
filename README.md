@@ -86,7 +86,13 @@ light up for. He seems like when he's on, he's untouchable. But if just
 one pitch isn't feeling right, he might be in trouble.
 
 
-View the full report, with code included, [here.](MLB-Pitcher-Analysis.Rmd)
+<br>
+<br>
+<br>
+
+View the full report [here.](MLB-Pitcher-Analysis.md)
+
+View the code behind the report [here.](MLB-Pitcher-Analysis.Rmd)
 
 
 
